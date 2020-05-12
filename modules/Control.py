@@ -1,4 +1,5 @@
 import pyvjoy
+import pyautogui
 
 def hello(): print("hello")
 
@@ -13,3 +14,6 @@ class СontrolClass():
     
     def SetButton(self, NumberButton, value):
         self.Gamepad.set_button(NumberButton, value)
+
+    def PressKeyOnKeyboard(self, key):
+        pyautogui.press(key)  

@@ -3,6 +3,35 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>    
   </head>
   <body>
-    <p id="video_cl"><img src="{{ url_for('video') }}", height="95%"></p>
+  	<script type="text/javascript">
+      $(document).ready(function() {
+        function click() {
+            if(document.getElementById("video_cl").innerHTML == "") {
+              document.getElementById("video_cl").innerHTML = "<img src=\"{{ url_for('video') }}\", height=\"95%\">"
+            }
+            else { document.getElementById("video_cl").innerHTML = "" }
+        });
+      });
+    </script>
+    <script type="text/javascript">
+    	function getdata() {
+    	    const request = new XMLHttpRequest();
+    	    request.open('POST', '/GetStatistics');
+
+    	    request.onload = () => {
+    	        const jsoninput = JSON.parse(request.responseText);
+    	        const data = jsoninput.Data;
+    	        document.getElementById("DATA").innerHTML = data;
+    	    }
+
+    	    const data = new FormData();
+    	    request.send(data);
+   		    return false;
+
+    	}
+    	window.setInterval(getdata, 1000);
+    </script>
+    <p id="video_cl"></p>
+    <p id="DATA"></p>
   </body>
 </html>

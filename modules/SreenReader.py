@@ -2,22 +2,28 @@ from PIL import Image as PILImage, ImageGrab
 import numpy as np
 import cv2, time, math
 import threading
-from flask import Flask, render_template, Response
+from flask import Flask, render_template, Response, jsonify
 
 # for Fusion 3.64 and resolution 1366*768 - rect whit game (165, 30, 1201, 738)
 
 class ScreenReaderClass():
-    def __init__(self, ScreenShotingArea=(0, 0, 1366, 768)):
+    def __init__(self, ScreenShotingArea=(0, 0, 1366, 768), RoadK = 0.7):
         self.ScreenShotingArea = ScreenShotingArea
         self.АctualScreenShot = self.SreenShot(ScreenShotingArea)
         self.SaveTestScreenShot(ScreenShotingArea)
 
         self.GRAY_MASK = ((0, 0, 15), (255, 255, 150))
-        self.СutPicturesWithTheRoadUP = (525, 550)
-        self.СutPicturesWithTheRoadDOWN = (650, 738)
+        self.RED_MASK = ((170, 50, 50), (180, 255, 255))
+        self.RED_MASK_CAR = ((0, 50, 20), (5, 255, 255))
+        self.TopLineRoad = int((self.ScreenShotingArea[3]-self.ScreenShotingArea[1])*RoadK)
+
+        self.Statistics = []
+
+    def SetStatistics(self, Input):
+        self.Statistics = [Input]
 
     def SreenShot(self, ScreenShotRegion=None):
-        return np.array(ImageGrab.grab(bbox=ScreenShotRegion))
+        return cv2.cvtColor(np.array(ImageGrab.grab(bbox=ScreenShotRegion)), cv2.COLOR_RGB2BGR)
     
     def SaveImage(self, Image, Name="SaveImage.png"):
         cv2.imwrite(Name, Image)
@@ -29,43 +35,56 @@ class ScreenReaderClass():
         if(Image is None): Image = self.SreenShot(self.ScreenShotingArea)
         
         HSVImage = cv2.cvtColor(Image, cv2.COLOR_BGR2HSV)
-        return  cv2.inRange(HSVImage[:, :, :], Mask[0], Mask[1])
+        return  cv2.inRange(HSVImage, Mask[0], Mask[1])
 
-    def GetRoadMoment(self, Image=None):
+    def GetRoadMoment(self, NumberMoments=3, Image=None, Mask=-1, Save=False):
         if(Image is None): Image = self.SreenShot(self.ScreenShotingArea)
+        Mask = (lambda x: self.GRAY_MASK if(x==-1) else x)(Mask)
 
-        GrayRoadUp = self.GetMask(Image, self.GRAY_MASK)[self.СutPicturesWithTheRoadUP[0]:self.СutPicturesWithTheRoadUP[1]]
-        GrayRoadDown = self.GetMask(Image, self.GRAY_MASK)[self.СutPicturesWithTheRoadDOWN[0]:self.СutPicturesWithTheRoadDOWN[1]]
+        ReturnValues = []
+        Step = int(((self.ScreenShotingArea[3]-self.ScreenShotingArea[1])-self.TopLineRoad)/(NumberMoments))
+        
+        if(Save): 
+            ImageWithDrawImage = cv2.cvtColor(self.GetMask(Image, Mask), cv2.COLOR_GRAY2BGR)
+            cv2.line(ImageWithDrawImage, (0, self.TopLineRoad), 
+                                        (self.ScreenShotingArea[2]-self.ScreenShotingArea[0], self.TopLineRoad), (0, 255, 0), 2)
 
-        self.SaveImage(GrayRoadUp, "GRAY_ROAD_UP.png")
-        self.SaveImage(GrayRoadDown, "GRAY_ROAD_DOWN.png")
+        for i in range(NumberMoments):
+            GrayRoad = self.GetMask(Image, Mask)[self.TopLineRoad+Step*i:self.TopLineRoad+Step*(i+1), :]
+            
+            if(Save): cv2.line(ImageWithDrawImage, (0, self.TopLineRoad+Step*(i+1)), 
+                                        (self.ScreenShotingArea[2]-self.ScreenShotingArea[0], self.TopLineRoad+Step*(i+1)), (0, 255, 0), 2)
 
-        moments = cv2.moments(GrayRoadUp, 1)
-        dM01 = moments['m01']
-        dM10 = moments['m10']
-        dArea = moments['m00']
-        x1=-1
-        y1=-1
-        if(dArea != 0):
-            x1 = int(dM10 / dArea)
-            y1 = int(dM01 / dArea)
+            moments = cv2.moments(GrayRoad, 1)
+            dM10 = moments['m10']
+            dArea = moments['m00']
+            x = -1
+            if(dArea != 0): x = int(dM10 / dArea)
+            if(x!= -1): 
+                ReturnValues.append(x/(self.ScreenShotingArea[2]-self.ScreenShotingArea[0]))
+            else: ReturnValues.append(-1)
 
-        moments = cv2.moments(GrayRoadDown, 1)
-        dM01 = moments['m01']
-        dM10 = moments['m10']
-        dArea = moments['m00']
-        x2=-1
-        y2=-1
-        if(dArea != 0):
-            x2 = int(dM10 / dArea)
-            y2 = int(dM01 / dArea)
+        if(Save): 
+            self.SaveImage(ImageWithDrawImage, "GrayRoad.png")
 
-        return [(int(x1), int(y1)), (int(x2), int(y2))]
+        return ReturnValues
     
-    def DrawPoint(self, Position, Image=None):
+    def GetSpeed(self, Image=None, Save=False):
         if(Image is None): Image = self.SreenShot(self.ScreenShotingArea)
-        cv2.line(Image, (Position[0], Position[1]), (Position[0], Position[1]),(255, 0, 0), 15)
-        return Image
+        Speedometer = Image[110:130, 400:500]
+        SpeedometerWithMask = self.GetMask(Speedometer, self.RED_MASK)
+
+        if(Save): self.SaveImage(SpeedometerWithMask, "SpeedometerWithMask.png")
+        if(Save): self.SaveImage(Speedometer, "Speedometer.png")
+
+        moments = cv2.moments(SpeedometerWithMask, 1)
+        dM10 = moments['m10']
+        dArea = moments['m00']
+        x = -1
+        if(dArea != 0): x = int(dM10 / dArea)
+        if(x != -1): 
+            return x/100*200
+        else: return -1
 
     def demon(self):
         app = Flask(__name__)
@@ -79,63 +98,30 @@ class ScreenReaderClass():
             return render_template('index.html')
 
         def Gen():
-            count = 0
             while True:
-                count+=1
-                if(count >= 100): Color = True
-                elif(count >= 0): Color = False
-                if(count > 200): count = 0
-                
-                if(Color): image = cv2.cvtColor(self.SreenShot(self.ScreenShotingArea), cv2.COLOR_RGB2BGR)
-                else: 
-                    image_gray = self.GetMask(None, self.GRAY_MASK)
-                    image = cv2.cvtColor(self.GetMask(None, self.GRAY_MASK), cv2.COLOR_GRAY2BGR)
-                    
-                #image = cv2.copyMakeBorder(image, 0, 0, 0, 500, cv2.BORDER_CONSTANT, value=(0, 0, 0))
-                if(not Color):
-                    (x1, _), (x2, _) =  self.GetRoadMoment()
+                image = self.SreenShot(self.ScreenShotingArea)
+                x = self.GetRoadMoment(10)
+                Step = int(((self.ScreenShotingArea[3]-self.ScreenShotingArea[1])-self.TopLineRoad)/(10))
+                for i in range(len(x)):
+                    cv2.circle(image, (int(x[i]*(self.ScreenShotingArea[2]-self.ScreenShotingArea[0])), int(Step*(i+1)+self.TopLineRoad)-3), 2, (0, 255, 0), thickness=3, lineType=8, shift=0)
 
-                    point1 = (x1, int((self.СutPicturesWithTheRoadUP[0]+self.СutPicturesWithTheRoadUP[1])/2))
-                    point2 = (x2, int((self.СutPicturesWithTheRoadDOWN[0]+self.СutPicturesWithTheRoadDOWN[1])/2))
-                    deviation_point1 = int(x1 - abs(self.ScreenShotingArea[0]-self.ScreenShotingArea[2])/2)
-                    deviation_point2 = int(x2 - abs(self.ScreenShotingArea[0]-self.ScreenShotingArea[2])/2)
+                x = self.GetRoadMoment(10, Mask=self.RED_MASK_CAR)
+                Step = int(((self.ScreenShotingArea[3]-self.ScreenShotingArea[1])-self.TopLineRoad)/(10))
+                for i in range(len(x)):
+                    cv2.circle(image, (int(x[i]*(self.ScreenShotingArea[2]-self.ScreenShotingArea[0])), int(Step*(i+1)+self.TopLineRoad)-3), 2, (0, 0, 255), thickness=3, lineType=8, shift=0)
 
-                    distance_between_x1_x2 = abs(int((self.СutPicturesWithTheRoadUP[0]+self.СutPicturesWithTheRoadUP[1])/2) -
-                                                    int((self.СutPicturesWithTheRoadDOWN[0]+self.СutPicturesWithTheRoadDOWN[1])/2))
-
-                    angle = math.tan(distance_between_x1_x2/(abs(x1-x2)+0.01))*(180/3.14)
-                    if(x2<x1): angle *= -1
-
-                    cv2.line(image, point1, point2, (255, 0, 0), 10)
-                    cv2.line(image, (x1+int(self.ScreenShotingArea[2]/8), self.СutPicturesWithTheRoadUP[0]), 
-                                    (x2+int(self.ScreenShotingArea[2]/2), self.СutPicturesWithTheRoadDOWN[1]), 
-                                    (255, 0, 0), 10)
-                    cv2.line(image, (x1-int(self.ScreenShotingArea[2]/8), self.СutPicturesWithTheRoadUP[0]), 
-                                    (x2-int(self.ScreenShotingArea[2]/2),self.СutPicturesWithTheRoadDOWN[1]), 
-                                    (255, 0, 0), 10)
-
-                    cv2.putText(image, "X center of the road at the bottom of the frame = "+str(x1), (self.ScreenShotingArea[2]-1000, 270), 
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
-                    cv2.putText(image, "Deviation of the road from the center from below = "+str(deviation_point1), (self.ScreenShotingArea[2]-1000, 300), 
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
-                    cv2.putText(image, "X center of the road on top of the frame = "+str(x2), (self.ScreenShotingArea[2]-1000, 350), 
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
-                    cv2.putText(image, "Deviation of the road from the center from above = "+str(deviation_point2), (self.ScreenShotingArea[2]-1000, 380), 
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
-
-                    cv2.putText(image, "Road angle = "+str(angle), (self.ScreenShotingArea[2]-1000, 410), 
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
-                    image = np.array(image)
-                    
-                    image[np.where((image==[255,255,255]).all(axis=2))] = [0, 255, 0]
-                        #image = cv2.bitwise_and(image, image, mask=image_gray)
                 yield (b'--frame\r\n'
                         b'Content-Type: image/jpeg\r\n\r\n' + image2jpeg(image) + b'\r\n\r\n')
-                
+
+        @app.route("/GetStatistics", methods=["POST"])        
+        def GetStatistics():
+            return jsonify({"Data": (''.join([str(i) for i in self.Statistics])).replace("\n", "<br />")})
+
         @app.route('/video')
         def video():
             return Response(Gen(),
                         mimetype='multipart/x-mixed-replace; boundary=frame')
+
         app.run(host='0.0.0.0', debug=False, threaded=True)
 
     def StartDemon(self):
