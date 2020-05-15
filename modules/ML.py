@@ -100,10 +100,10 @@ class GeneticAlgorithm():
         self.Persons = [Neyro(Neyrons[0], Neyrons[1], Neyrons[2]) for i in range(NumberOfPersons)]
         self.Neyrons = Neyrons
         self.NumberOfPersons = NumberOfPersons
-        self.MutationK = 0.1
+        self.MutationK = 0.05
         self.Era = 1
 
-    def GeneСalculation(self, Gene1, Gene2, GeneK=0.5, MutationK=0.1, MutationFrom=0, MutationTo=1):
+    def GeneСalculation(self, Gene1, Gene2, GeneK=0.5, MutationK=0.1, MutationFrom=-1, MutationTo=1):
         if(random.random() < MutationK): return (MutationTo-MutationFrom)*random.random() + MutationFrom;
         else: return (Gene1*GeneK) + (Gene2*(1-GeneK)); 
 
@@ -113,24 +113,23 @@ class GeneticAlgorithm():
 
         for i in range(len(Person1.InputWeights)):
             for j in range(len(Person1.InputWeights[0])):
-                OutputPerson.InputWeights[i][j] = self.GeneСalculation(Person1.InputWeights[i][j], Person2.InputWeights[i][j], GeneK, self.MutationK)
+                OutputPerson.InputWeights[i][j] = self.GeneСalculation(Person1.InputWeights[i][j], Person2.InputWeights[i][j], GeneK, MutationK)
         for i in range(len(Person1.OutputWeights)):
             for j in range(len(Person1.OutputWeights[0])):
-                OutputPerson.OutputWeights[i][j] = self.GeneСalculation(Person1.OutputWeights[i][j], Person2.OutputWeights[i][j], GeneK, self.MutationK)
+                OutputPerson.OutputWeights[i][j] = self.GeneСalculation(Person1.OutputWeights[i][j], Person2.OutputWeights[i][j], GeneK, MutationK)
 
         return OutputPerson
     
     def NewEra(self):
         self.Era+=1
         self.Sort()
-        for i in range(math.ceil(self.NumberOfPersons/4)+1, self.NumberOfPersons, 1):
-            RandomPerson1 = round(random.randint(0, math.ceil(self.NumberOfPersons/4)*1000)/1000)
-            RandomPerson2 = round(random.randint(0, math.ceil(self.NumberOfPersons/4)*1000)/1000)
+        for i in range(math.ceil(self.NumberOfPersons/2)+1, self.NumberOfPersons, 1):
+            RandomPerson1 = round(random.randint(0, math.ceil(self.NumberOfPersons/2)*1000)/1000)
+            RandomPerson2 = round(random.randint(0, math.ceil(self.NumberOfPersons/2)*1000)/1000)
             self.Persons[i] = self.Birth(self.Persons[RandomPerson1], self.Persons[RandomPerson2])
-        print()
 
     def Sort(self):
-        self.Persons = sorted(self.Persons, key=(lambda x: x.Performance*x.Speed))
+        self.Persons = sorted(self.Persons, key=(lambda x: -1*x.Performance))
 
     def __str__(self):
         Output = ""
