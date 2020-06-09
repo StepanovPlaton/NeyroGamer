@@ -1,4 +1,5 @@
 import random, math
+import numpy as np
 
 class Neyro():
     def __init__(self, NumberInputs, NumberHiddenNeyrons, NumberOutputs):
@@ -10,22 +11,33 @@ class Neyro():
         self.NumberHiddenNeyrons = NumberHiddenNeyrons
         self.NumberOutputs = NumberOutputs
 
-        self.ValuesInputNeurons = [1.0]*self.NumberInputs
-        self.ValuesHiddenNeurons = [1.0]*self.NumberHiddenNeyrons
-        self.ValuesOutputNeurons = [1.0]*self.NumberOutputs
+        self.ValuesInputNeurons = np.ones((self.NumberInputs))
+        self.ValuesHiddenNeurons = np.ones((self.NumberHiddenNeyrons))
+        self.ValuesOutputNeurons = np.ones((self.NumberOutputs))
 
-        self.InputWeights = self.makeMatrix(self.NumberInputs, self.NumberHiddenNeyrons)
-        self.OutputWeights = self.makeMatrix(self.NumberHiddenNeyrons, self.NumberOutputs)
+        self.MemoryHiddenNeurons = np.array([0 for i in range(self.NumberHiddenNeyrons)])
+        self.MemoryOutputNeurons = np.array([0 for i in range(self.NumberOutputs)])
+
+        self.WeightsMemoryHiddenNeurons = np.array([0 for i in range(self.NumberHiddenNeyrons)])
+        self.WeightsMemoryOutputNeurons = np.array([0 for i in range(self.NumberOutputs)])
+
+        self.InputWeights = np.ones((self.NumberInputs, self.NumberHiddenNeyrons))
+        self.OutputWeights = np.ones((self.NumberHiddenNeyrons, self.NumberOutputs))
 
         for i in range(self.NumberInputs):
-            for j in range(self.NumberHiddenNeyrons):
-                self.InputWeights[i][j] = self.Random(-1, 1)
+            for j in range(self.NumberHiddenNeyrons): self.InputWeights[i, j] = self.Random(-1, 1)
         for j in range(self.NumberHiddenNeyrons):
-            for k in range(self.NumberOutputs):
-                self.OutputWeights[j][k] = self.Random(-1, 1)
+            for k in range(self.NumberOutputs): self.OutputWeights[j, k] = self.Random(-1, 1)
 
     def Random(self, a, b):
         return (b-a)*random.random() + a
+
+    def Reset(self):
+        self.Performance = -1
+        self.Speed = -1
+        self.Deviation = 0
+        self.MemoryHiddenNeurons = np.array([0 for i in range(self.NumberHiddenNeyrons)])
+        self.MemoryOutputNeurons = np.array([0 for i in range(self.NumberOutputs)])
 
     def makeMatrix(self, width, height, fill=0.0):
         Matrix = []
@@ -38,7 +50,7 @@ class Neyro():
 
     def Predict(self, inputs):
         if len(inputs) != self.NumberInputs-1:
-            raise ValueError('wrong number of inputs')
+            raise ValueError('Wrong number inputs!')
 
         for i in range(self.NumberInputs-1):
             #self.ai[i] = sigmoid(inputs[i])
@@ -47,52 +59,24 @@ class Neyro():
         for j in range(self.NumberHiddenNeyrons):
             sum = 0.0
             for i in range(self.NumberInputs):
-                sum = sum + self.ValuesInputNeurons[i] * self.InputWeights[i][j]
-            self.ValuesHiddenNeurons[j] = self.sigmoid(sum)
-
+                sum = sum + self.ValuesInputNeurons[i] * self.InputWeights[i, j]
+            self.ValuesHiddenNeurons[j] = \
+                self.sigmoid(sum + (self.WeightsMemoryHiddenNeurons[j] * self.MemoryHiddenNeurons[j]))
+            self.MemoryHiddenNeurons[j] = self.ValuesHiddenNeurons[j]
+        
         for k in range(self.NumberOutputs):
             sum = 0.0
             for j in range(self.NumberHiddenNeyrons):
-                sum = sum + self.ValuesHiddenNeurons[j] * self.OutputWeights[j][k]
-            self.ValuesOutputNeurons[k] = self.sigmoid(sum)
+                sum = sum + self.ValuesHiddenNeurons[j] * self.OutputWeights[j, k]
+            self.ValuesOutputNeurons[k] = \
+                self.sigmoid(sum + (self.WeightsMemoryOutputNeurons[k] * self.MemoryOutputNeurons[k]))
+            self.MemoryOutputNeurons[k] = self.ValuesOutputNeurons[k]
 
         return self.ValuesOutputNeurons[:]
 
-
-    def SaveNeyro(self, FileName):
-        File = open(FileName, "w")
-        File.write(str(self.NumberInputs)+";")
-        File.write(str(self.NumberHiddenNeyrons)+";")
-        File.write(str(self.NumberHiddenNeyrons)+";")
-        for i in range(self.NumberInputs):
-            for j in range(self.NumberHiddenNeyrons):
-                File.write(str(self.InputWeights[i][j])+";")
-        for i in range(self.NumberHiddenNeyrons):
-            for j in range(self.NumberOutputs):
-                File.write(str(self.OutputWeights[i][j])+";")
-        File.close()
-
-    def LoadNeyro(self, FileName):
-        File = open(FileName, "r")
-        line = File.read()
-        File.close()
-        arr = line.split(";")
-        self.NumberInputs, self.NumberHiddenNeyrons, self.NumberOutputs = \
-                                                int(arr[0]), int(arr[1]), int(arr[2])
-        self.InputWeights = self.makeMatrix(self.NumberInputs, self.NumberHiddenNeyrons)
-        self.OutputWeights = self.makeMatrix(self.NumberHiddenNeyrons, self.NumberOutputs)
-        n = 2
-        for i in range(self.NumberInputs):
-            for j in range(self.NumberHiddenNeyrons):
-                n += 1
-                self.InputWeights[i][j] = float(arr[n])
-        for i in range(self.NumberHiddenNeyrons):
-            for j in range(self.NumberOutputs):
-                n += 1
-                self.OutputWeights[i][j] = float(arr[n]) 
-
     def __str__(self): return "Score = "+ str((lambda x: x if(not x==-1) else "unknown")(self.Performance)) +" Speed = "+ \
                                 str((lambda x: x if(not x==-1) else "unknown")(self.Speed)) +"\n"
+
 
 
 class GeneticAlgorithm():
@@ -113,11 +97,18 @@ class GeneticAlgorithm():
 
         for i in range(len(Person1.InputWeights)):
             for j in range(len(Person1.InputWeights[0])):
-                OutputPerson.InputWeights[i][j] = self.GeneСalculation(Person1.InputWeights[i][j], Person2.InputWeights[i][j], GeneK, MutationK)
+                OutputPerson.InputWeights[i, j] = self.GeneСalculation(Person1.InputWeights[i, j], Person2.InputWeights[i, j], GeneK, MutationK)
         for i in range(len(Person1.OutputWeights)):
             for j in range(len(Person1.OutputWeights[0])):
-                OutputPerson.OutputWeights[i][j] = self.GeneСalculation(Person1.OutputWeights[i][j], Person2.OutputWeights[i][j], GeneK, MutationK)
+                OutputPerson.OutputWeights[i, j] = self.GeneСalculation(Person1.OutputWeights[i, j], Person2.OutputWeights[i, j], GeneK, MutationK)
 
+        for i in range(Person1.NumberHiddenNeyrons):
+            OutputPerson.WeightsMemoryHiddenNeurons[i] = \
+                self.GeneСalculation(Person1.WeightsMemoryHiddenNeurons[i], Person2.WeightsMemoryHiddenNeurons[i], GeneK, MutationK)
+        for i in range(Person1.NumberOutputs):
+            OutputPerson.WeightsMemoryOutputNeurons[i] = \
+                self.GeneСalculation(Person1.WeightsMemoryOutputNeurons[i], Person2.WeightsMemoryOutputNeurons[i], GeneK, MutationK)
+        
         return OutputPerson
     
     def NewEra(self):
@@ -132,8 +123,7 @@ class GeneticAlgorithm():
         self.Persons = sorted(self.Persons, key=(lambda x: -1*x.Performance))
 
     def __str__(self):
-        Output = ""
-        Output += "Current ERA - {0} Persons - {1}\n".format(self.Era, len(self.Persons))
+        Output = "Current ERA - {0} Persons - {1}\n".format(self.Era, len(self.Persons))
         for i in range(len(self.Persons)): Output += "Person {0} ".format(i+1)+ str(self.Persons[i]) +"\n"
         return Output + "\n"
 

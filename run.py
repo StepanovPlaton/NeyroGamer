@@ -7,7 +7,7 @@ from modules.ML import *
 control = СontrolClass(1)
 
 NumberOfPersons = 15
-TestingTime = 5
+TestingTime = 1
 
 time.sleep(5)
 
@@ -16,7 +16,7 @@ Genetic = GeneticAlgorithm(NumberOfPersons, (21, 32, 4))
 ScreenReader.StartDemon()
 ScreenReader.GetSpeed(None, True)
 
-ERA = 1
+ERA = 5
 k = 0.15
 
 ScreenReader.SetStatistics(Genetic.GetStatistics())
@@ -54,11 +54,10 @@ while True:
             Genetic.Persons[i].Speed += ScreenReader.GetSpeed()
             #if(Genetic.Persons[i].Speed < 0): Genetic.Persons[i].Speed = 0
 
-            if((time.time() - TimeStart) > 5 and Genetic.Persons[i].Speed < 25): break
+            #if((time.time() - TimeStart) > 5 and Genetic.Persons[i].Speed < 25): break
             if((time.time() - TimeStart) > TestingTime): break
 
             count += 1
-        print(count, count/TestingTime)
         Genetic.Persons[i].Speed /= count
         ScreenReader.SetStatistics(Genetic.GetStatistics())
    
@@ -67,9 +66,7 @@ while True:
     Genetic.NewEra()
     time.sleep(3)
     
-    for i in range(NumberOfPersons):
-        Genetic.Persons[i].Performance = -1
-        Genetic.Persons[i].Speed = -1
+    for i in range(NumberOfPersons): Genetic.Persons[i].Reset()
     ScreenReader.SetStatistics(Genetic.GetStatistics())
 
 
