@@ -7,16 +7,16 @@ from modules.ML import *
 control = СontrolClass(1)
 
 NumberOfPersons = 15
-TestingTime = 1
+TestingTime = 5
 
 time.sleep(5)
 
 ScreenReader = ScreenReaderClass((64, 32, 576, 448))
-Genetic = GeneticAlgorithm(NumberOfPersons, (21, 32, 4))
+Genetic = GeneticAlgorithm(NumberOfPersons, (41, 64, 3))
 ScreenReader.StartDemon()
 ScreenReader.GetSpeed(None, True)
 
-ERA = 5
+ERA = 1
 k = 0.15
 
 ScreenReader.SetStatistics(Genetic.GetStatistics())
@@ -29,13 +29,12 @@ while True:
         count = 0
 
         while True:
-            x =  ScreenReader.GetRoadMoment(10)
-            y = ScreenReader.GetRoadMoment(10, Mask=ScreenReader.RED_MASK_CAR, Save=True)
-            for j in y: x.append(j)
+            x1, x2 = ScreenReader.GetRoadMoment(10)
+            y1, y2 = ScreenReader.GetRoadMoment(10, Mask=ScreenReader.RED_MASK_CAR)
             Speed = ScreenReader.GetSpeed()
-            x.append(Speed/200)
-
-            result = Genetic.Persons[i].Predict(x)
+            NeyroInput = x1+x2+y1+y2
+            NeyroInput.append(Speed/200)
+            result = Genetic.Persons[i].Predict(NeyroInput)
 
             if(result[0] > 0): control.SetButton(2, 1)
             else: control.SetButton(2, 0)
@@ -43,11 +42,9 @@ while True:
             if(result[1] > 0): control.SetButton(1, 1)
             else: control.SetButton(1, 0)
 
-            if(result[2] > 0 and result[3] > 0): control.SetLeftStick(0, 0)
-            elif(result[2] > 0): control.SetLeftStick(1, 0)
-            elif(result[3] > 0): control.SetLeftStick(-1, 0)
+            control.SetLeftStick(result[2], 0)
 
-            devigation = abs((abs(x[0])-0.5)*2)
+            devigation = abs((abs(x1[0])-0.5)*2)
             
             Genetic.Persons[i].Performance += (ScreenReader.GetSpeed()/200)
             #if(Genetic.Persons[i].Performance < 0): Genetic.Persons[i].Performance = 0
@@ -58,9 +55,16 @@ while True:
             if((time.time() - TimeStart) > TestingTime): break
 
             count += 1
-        Genetic.Persons[i].Speed /= count
+
+        #print(Genetic.Persons[i].MemoryHiddenNeurons[random.randint(0, 10)])
+        #print(Genetic.Persons[i].WeightsMemoryHiddenNeurons[random.randint(0, 10)])
+
+        Genetic.Persons[i].Speed = int(Genetic.Persons[i].Speed/count)
+        Genetic.Persons[i].Performance = int(Genetic.Persons[i].Performance/TestingTime*10)
+        
         ScreenReader.SetStatistics(Genetic.GetStatistics())
-   
+        
+        print(count/TestingTime)
     ERA+=1
 
     Genetic.NewEra()
@@ -69,5 +73,4 @@ while True:
     for i in range(NumberOfPersons): Genetic.Persons[i].Reset()
     ScreenReader.SetStatistics(Genetic.GetStatistics())
 
-
-    TestingTime += ERA
+    TestingTime += 1#ERA

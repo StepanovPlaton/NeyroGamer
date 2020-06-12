@@ -11,18 +11,21 @@ class Neyro():
         self.NumberHiddenNeyrons = NumberHiddenNeyrons
         self.NumberOutputs = NumberOutputs
 
-        self.ValuesInputNeurons = np.ones((self.NumberInputs))
-        self.ValuesHiddenNeurons = np.ones((self.NumberHiddenNeyrons))
-        self.ValuesOutputNeurons = np.ones((self.NumberOutputs))
+        self.ValuesInputNeurons = np.zeros((self.NumberInputs))
+        self.ValuesHiddenNeurons = np.zeros((self.NumberHiddenNeyrons))
+        self.ValuesOutputNeurons = np.zeros((self.NumberOutputs))
 
-        self.MemoryHiddenNeurons = np.array([0 for i in range(self.NumberHiddenNeyrons)])
-        self.MemoryOutputNeurons = np.array([0 for i in range(self.NumberOutputs)])
+        self.MemoryHiddenNeurons = np.zeros((self.NumberHiddenNeyrons))
+        self.MemoryOutputNeurons = np.zeros((self.NumberOutputs))
 
-        self.WeightsMemoryHiddenNeurons = np.array([0 for i in range(self.NumberHiddenNeyrons)])
-        self.WeightsMemoryOutputNeurons = np.array([0 for i in range(self.NumberOutputs)])
+        self.WeightsMemoryHiddenNeurons = np.zeros((self.NumberHiddenNeyrons))
+        self.WeightsMemoryOutputNeurons = np.zeros((self.NumberOutputs))
 
-        self.InputWeights = np.ones((self.NumberInputs, self.NumberHiddenNeyrons))
-        self.OutputWeights = np.ones((self.NumberHiddenNeyrons, self.NumberOutputs))
+        self.InputWeights = np.zeros((self.NumberInputs, self.NumberHiddenNeyrons))
+        self.OutputWeights = np.zeros((self.NumberHiddenNeyrons, self.NumberOutputs))
+
+        for i in range(self.NumberHiddenNeyrons): self.WeightsMemoryHiddenNeurons[i] = self.Random(-1, 1)
+        for i in range(self.NumberOutputs): self.WeightsMemoryOutputNeurons[i] = self.Random(-1, 1)
 
         for i in range(self.NumberInputs):
             for j in range(self.NumberHiddenNeyrons): self.InputWeights[i, j] = self.Random(-1, 1)
@@ -36,8 +39,8 @@ class Neyro():
         self.Performance = -1
         self.Speed = -1
         self.Deviation = 0
-        self.MemoryHiddenNeurons = np.array([0 for i in range(self.NumberHiddenNeyrons)])
-        self.MemoryOutputNeurons = np.array([0 for i in range(self.NumberOutputs)])
+        self.WeightsMemoryHiddenNeurons = np.zeros((self.NumberHiddenNeyrons))
+        self.WeightsMemoryOutputNeurons = np.zeros((self.NumberOutputs))
 
     def makeMatrix(self, width, height, fill=0.0):
         Matrix = []

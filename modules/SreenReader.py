@@ -42,6 +42,7 @@ class ScreenReaderClass():
         Mask = (lambda x: self.GRAY_MASK if(x==-1) else x)(Mask)
 
         ReturnValues = []
+        ReturnValues2 = []
         Step = int(((self.ScreenShotingArea[3]-self.ScreenShotingArea[1])-self.TopLineRoad)/(NumberMoments))
         
         if(Save): 
@@ -62,12 +63,15 @@ class ScreenReaderClass():
             if(dArea != 0): x = int(dM10 / dArea)
             if(x!= -1): 
                 ReturnValues.append(x/(self.ScreenShotingArea[2]-self.ScreenShotingArea[0]))
-            else: ReturnValues.append(-1)
+                ReturnValues2.append(np.sum(GrayRoad)/1000000)
+            else: 
+                ReturnValues.append(-1)
+                ReturnValues2.append(-1)
 
         if(Save): 
             self.SaveImage(ImageWithDrawImage, "GrayRoad.png")
 
-        return ReturnValues
+        return ReturnValues, ReturnValues2
     
     def GetSpeed(self, Image=None, Save=False):
         if(Image is None): Image = self.SreenShot(self.ScreenShotingArea)
@@ -100,12 +104,12 @@ class ScreenReaderClass():
         def Gen():
             while True:
                 image = self.SreenShot(self.ScreenShotingArea)
-                x = self.GetRoadMoment(10)
+                x, _ = self.GetRoadMoment(10)
                 Step = int(((self.ScreenShotingArea[3]-self.ScreenShotingArea[1])-self.TopLineRoad)/(10))
                 for i in range(len(x)):
                     cv2.circle(image, (int(x[i]*(self.ScreenShotingArea[2]-self.ScreenShotingArea[0])), int(Step*(i+1)+self.TopLineRoad)-3), 2, (0, 255, 0), thickness=3, lineType=8, shift=0)
 
-                x = self.GetRoadMoment(10, Mask=self.RED_MASK_CAR)
+                x, _ = self.GetRoadMoment(10, Mask=self.RED_MASK_CAR)
                 Step = int(((self.ScreenShotingArea[3]-self.ScreenShotingArea[1])-self.TopLineRoad)/(10))
                 for i in range(len(x)):
                     cv2.circle(image, (int(x[i]*(self.ScreenShotingArea[2]-self.ScreenShotingArea[0])), int(Step*(i+1)+self.TopLineRoad)-3), 2, (0, 0, 255), thickness=3, lineType=8, shift=0)
