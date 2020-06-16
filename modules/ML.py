@@ -59,28 +59,88 @@ class Neyro():
             #self.ai[i] = sigmoid(inputs[i])
             self.ValuesInputNeurons[i] = inputs[i]
 
-        for j in range(self.NumberHiddenNeyrons):
-            sum = 0.0
-            for i in range(self.NumberInputs):
-                sum = sum + self.ValuesInputNeurons[i] * self.InputWeights[i, j]
-            self.ValuesHiddenNeurons[j] = \
-                self.sigmoid(sum + (self.WeightsMemoryHiddenNeurons[j] * self.MemoryHiddenNeurons[j]))
-            self.MemoryHiddenNeurons[j] = self.ValuesHiddenNeurons[j]
+        #for j in range(self.NumberHiddenNeyrons):
+        #    sum = 0.0
+        #    for i in range(self.NumberInputs):
+        #        sum = sum + self.ValuesInputNeurons[i] * self.InputWeights[i, j]
+        #    self.ValuesHiddenNeurons[j] = \
+        #        self.sigmoid(sum + (self.WeightsMemoryHiddenNeurons[j] * self.MemoryHiddenNeurons[j]))
+        #    self.MemoryHiddenNeurons[j] = self.ValuesHiddenNeurons[j]
         
-        for k in range(self.NumberOutputs):
-            sum = 0.0
-            for j in range(self.NumberHiddenNeyrons):
-                sum = sum + self.ValuesHiddenNeurons[j] * self.OutputWeights[j, k]
-            self.ValuesOutputNeurons[k] = \
-                self.sigmoid(sum + (self.WeightsMemoryOutputNeurons[k] * self.MemoryOutputNeurons[k]))
-            self.MemoryOutputNeurons[k] = self.ValuesOutputNeurons[k]
+        self.ValuesHiddenNeurons = np.array(list(map(self.sigmoid, \
+                    self.InputWeights.swapaxes(1,0).dot(self.ValuesInputNeurons) + \
+                            (self.WeightsMemoryHiddenNeurons * self.MemoryHiddenNeurons))))
+        self.MemoryHiddenNeurons = self.ValuesHiddenNeurons.copy()
+
+        #for k in range(self.NumberOutputs):
+        #    sum = 0.0
+        #    for j in range(self.NumberHiddenNeyrons):
+        #        sum = sum + self.ValuesHiddenNeurons[j] * self.OutputWeights[j, k]
+        #    self.ValuesOutputNeurons[k] = \
+        #        self.sigmoid(sum + (self.WeightsMemoryOutputNeurons[k] * self.MemoryOutputNeurons[k]))
+        #    self.MemoryOutputNeurons[k] = self.ValuesOutputNeurons[k]
+
+        self.ValuesOutputNeurons = np.array(list(map(self.sigmoid, \
+                    self.OutputWeights.swapaxes(1,0).dot(self.ValuesHiddenNeurons) + \
+                            (self.WeightsMemoryOutputNeurons * self.MemoryOutputNeurons))))
+        self.MemoryOutputNeurons = self.ValuesOutputNeurons.copy()
 
         return self.ValuesOutputNeurons[:]
 
     def __str__(self): return "Score = "+ str((lambda x: x if(not x==-1) else "unknown")(self.Performance)) +" Speed = "+ \
                                 str((lambda x: x if(not x==-1) else "unknown")(self.Speed)) +"\n"
 
+    def Save(self, FileName):
+        File = open(FileName, 'w')
 
+        File.write("Number Of Neurons\n")
+
+        File.write(str(self.NumberInputs) + "\n")
+        File.write(str(self.NumberHiddenNeyrons) + "\n")
+        File.write(str(self.NumberOutputs) + "\n")
+
+        File.write("Weights Memory\n")
+        for i in range(self.NumberHiddenNeyrons): File.write(str(self.WeightsMemoryHiddenNeurons[i]) + "\n")
+        for i in range(self.NumberOutputs): File.write(str(self.WeightsMemoryOutputNeurons[i]) + "\n")
+
+        File.write("Input Weights\n")
+        for i in range(self.NumberInputs):
+            for j in range(self.NumberHiddenNeyrons): File.write(str(self.InputWeights[i, j]) + "\n")
+
+        File.write("Output Weights\n")
+        for j in range(self.NumberHiddenNeyrons):
+            for k in range(self.NumberOutputs): File.write(str(self.OutputWeights[j, k]) + "\n")
+
+        File.write("End\n")
+
+    def Load(self, FileName):
+        File = open(FileName, 'r')
+
+        File.readline()
+        NumberInputs = int(File.readline().split("\n")[0])
+        NumberHiddenNeyrons = int(File.readline().split("\n")[0])
+        NumberOutputs = int(File.readline().split("\n")[0])
+
+        if(NumberInputs != self.NumberInputs or NumberHiddenNeyrons != self.NumberHiddenNeyrons or NumberOutputs != self.NumberOutputs):
+            raise ValueError("In the data files, the network configuration does not match the configuration of the current network!");
+            
+        self.NumberInputs = NumberInputs
+        self.NumberHiddenNeyrons = NumberHiddenNeyrons
+        self.NumberOutputs = NumberOutputs
+
+        File.readline()
+        for i in range(self.NumberHiddenNeyrons): self.WeightsMemoryHiddenNeurons[i] = float(File.readline().split("\n")[0])
+        for i in range(self.NumberOutputs): self.WeightsMemoryOutputNeurons[i] = float(File.readline().split("\n")[0])
+
+        File.readline()
+        for i in range(self.NumberInputs):
+            for j in range(self.NumberHiddenNeyrons): self.InputWeights[i, j] = float(File.readline().split("\n")[0])
+
+        File.readline()
+        for j in range(self.NumberHiddenNeyrons):
+            for k in range(self.NumberOutputs): self.OutputWeights[j, k] = float(File.readline().split("\n")[0])
+
+        File.readline()
 
 class GeneticAlgorithm():
     def __init__(self, NumberOfPersons=10, Neyrons=(5, 8, 3)):

@@ -3,7 +3,7 @@ import pyautogui
 
 def hello(): print("hello")
 
-class СontrolClass():
+class ControlClass():
     def __init__(self, NumberGamepad=1): 
         self.Gamepad = pyvjoy.VJoyDevice(1)
         self.Gamepad.reset()

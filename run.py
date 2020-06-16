@@ -4,22 +4,29 @@ from modules.SreenReader import *
 from modules.Control import *
 from modules.ML import *
 
-control = СontrolClass(1)
+control = ControlClass(1)
 
 NumberOfPersons = 15
 TestingTime = 5
 
-time.sleep(5)
+SizeInputImage = (64, 16)
+
+time.sleep(1)
 
 ScreenReader = ScreenReaderClass((64, 32, 576, 448))
-Genetic = GeneticAlgorithm(NumberOfPersons, (41, 64, 3))
+#Genetic = GeneticAlgorithm(NumberOfPersons, (41 + (SizeInputImage[0]*SizeInputImage[1]*3), 80, 3))
+Genetic = GeneticAlgorithm(NumberOfPersons, (1+(SizeInputImage[0]*SizeInputImage[1]*3), 1024, 3))
 ScreenReader.StartDemon()
 ScreenReader.GetSpeed(None, True)
+
+ScreenReader.SreenShotMini(ScreenReader.ScreenShotingAreaRoad, SizeInputImage, Save=True)
 
 ERA = 1
 k = 0.15
 
 ScreenReader.SetStatistics(Genetic.GetStatistics())
+
+Genetic.Persons[0].Save("1.txt")
 
 while True:
     for i in range(NumberOfPersons):
@@ -29,12 +36,18 @@ while True:
         count = 0
 
         while True:
-            x1, x2 = ScreenReader.GetRoadMoment(10)
-            y1, y2 = ScreenReader.GetRoadMoment(10, Mask=ScreenReader.RED_MASK_CAR)
+            #x1, x2 = ScreenReader.GetRoadMoment(10)
+            #y1, y2 = ScreenReader.GetRoadMoment(10, Mask=ScreenReader.RED_MASK_CAR)
             Speed = ScreenReader.GetSpeed()
-            NeyroInput = x1+x2+y1+y2
-            NeyroInput.append(Speed/200)
-            result = Genetic.Persons[i].Predict(NeyroInput)
+
+            #NeyroInput = np.array(x1+x2+y1+y2)
+            #NeyroInput = np.append(NeyroInput, Speed/200)
+
+            MiniImage = np.array(ScreenReader.SreenShotMini(ScreenReader.ScreenShotingAreaRoad, SizeInputImage))
+            MiniImageReshape = np.reshape(MiniImage, SizeInputImage[0]*SizeInputImage[1]*3)
+            MiniImageReshape =  MiniImageReshape / 255
+            #result = Genetic.Persons[i].Predict(np.append(NeyroInput, MiniImageReshape))
+            result = Genetic.Persons[i].Predict(np.append(Speed/200, MiniImageReshape))
 
             if(result[0] > 0): control.SetButton(2, 1)
             else: control.SetButton(2, 0)
@@ -44,12 +57,10 @@ while True:
 
             control.SetLeftStick(result[2], 0)
 
-            devigation = abs((abs(x1[0])-0.5)*2)
+            #devigation = abs((abs(x1[0])-0.5)*2)
             
             Genetic.Persons[i].Performance += (ScreenReader.GetSpeed()/200)
-            #if(Genetic.Persons[i].Performance < 0): Genetic.Persons[i].Performance = 0
             Genetic.Persons[i].Speed += ScreenReader.GetSpeed()
-            #if(Genetic.Persons[i].Speed < 0): Genetic.Persons[i].Speed = 0
 
             #if((time.time() - TimeStart) > 5 and Genetic.Persons[i].Speed < 25): break
             if((time.time() - TimeStart) > TestingTime): break
@@ -68,7 +79,6 @@ while True:
     ERA+=1
 
     Genetic.NewEra()
-    time.sleep(3)
     
     for i in range(NumberOfPersons): Genetic.Persons[i].Reset()
     ScreenReader.SetStatistics(Genetic.GetStatistics())

@@ -7,24 +7,52 @@ from flask import Flask, render_template, Response, jsonify
 # for Fusion 3.64 and resolution 1366*768 - rect whit game (165, 30, 1201, 738)
 
 class ScreenReaderClass():
-    def __init__(self, ScreenShotingArea=(0, 0, 1366, 768), RoadK = 0.7):
+    def __init__(self, ScreenShotingArea=(0, 0, 1366, 768), RoadK = 0.8):
         self.ScreenShotingArea = ScreenShotingArea
-        self.АctualScreenShot = self.SreenShot(ScreenShotingArea)
+        self.АctualScreenShot = cv2.cvtColor(np.array(ImageGrab.grab()), cv2.COLOR_RGB2BGR)
         self.SaveTestScreenShot(ScreenShotingArea)
 
         self.GRAY_MASK = ((0, 0, 15), (255, 255, 150))
         self.RED_MASK = ((170, 50, 50), (180, 255, 255))
         self.RED_MASK_CAR = ((0, 50, 20), (5, 255, 255))
         self.TopLineRoad = int((self.ScreenShotingArea[3]-self.ScreenShotingArea[1])*RoadK)
+        self.ScreenShotingAreaRoad = (ScreenShotingArea[0], self.TopLineRoad, ScreenShotingArea[2], ScreenShotingArea[3])
 
         self.Statistics = []
-
+        self.StartScreenShotingDemon()
     def SetStatistics(self, Input):
         self.Statistics = [Input]
 
-    def SreenShot(self, ScreenShotRegion=None):
-        return cv2.cvtColor(np.array(ImageGrab.grab(bbox=ScreenShotRegion)), cv2.COLOR_RGB2BGR)
+    def ScreenShotingDemon(self):
+        counter = 0
+        StartTime = time.time()
+        while True:
+            self.АctualScreenShot = cv2.cvtColor(np.array(ImageGrab.grab()), cv2.COLOR_RGB2BGR)
+            if(time.time()-StartTime >= 10):
+                print("FPS ScreenShot - {}".format(counter/(time.time()-StartTime)))
+                StartTime = time.time()
+                counter = 0
+            counter+=1
+            time.sleep(0.005)
+    def StartScreenShotingDemon(self):
+        demon = threading.Thread(target=self.ScreenShotingDemon)
+        demon.daemon = True
+        demon.start()
+
+    def SreenShot(self, ScreenShotRegion=None, Save=False):
+        if(ScreenShotRegion != None): image = np.array(self.АctualScreenShot)[ScreenShotRegion[1]:ScreenShotRegion[3], ScreenShotRegion[0]:ScreenShotRegion[2]]
+        else: image = np.array(self.АctualScreenShot)
+        if(Save): self.SaveImage(image, "MiniScreen.png")
+        return image
     
+    def SreenShotMini(self, ScreenShotRegion=None, Size=(64, 16), Save=False):
+        if(ScreenShotRegion != None):
+            image = cv2.resize(np.array(self.АctualScreenShot)[ScreenShotRegion[1]:ScreenShotRegion[3], ScreenShotRegion[0]:ScreenShotRegion[2]],
+                                (int(Size[0]),int(Size[1])))
+        else: image = cv2.resize(np.array(self.АctualScreenShot), (int(Size[0]),int(Size[1])))
+        if(Save): self.SaveImage(image, "MiniScreen.png")
+        return image
+
     def SaveImage(self, Image, Name="SaveImage.png"):
         cv2.imwrite(Name, Image)
 
