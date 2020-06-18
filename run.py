@@ -26,7 +26,11 @@ k = 0.15
 
 ScreenReader.SetStatistics(Genetic.GetStatistics())
 
-Genetic.Persons[0].Save("1.txt")
+
+#print("----------------- LOAD -----------------")
+#for i in range(NumberOfPersons): 
+#    Genetic.Persons[i].Load("./NeyroData/Person{}.txt".format(i+1))
+#    print("Load person", i+1)
 
 while True:
     for i in range(NumberOfPersons):
@@ -76,8 +80,14 @@ while True:
         ScreenReader.SetStatistics(Genetic.GetStatistics())
         
         print(count/TestingTime)
-    ERA+=1
+        
+    if(ERA%5 == 0):
+        print("----------------- SAVE -----------------")
+        for i in range(NumberOfPersons): 
+            Genetic.Persons[i].Save("./NeyroData/Person{}.txt".format(i+1))
+            print("Save person", i+1)
 
+    ERA+=1
     Genetic.NewEra()
     
     for i in range(NumberOfPersons): Genetic.Persons[i].Reset()

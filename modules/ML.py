@@ -39,8 +39,8 @@ class Neyro():
         self.Performance = -1
         self.Speed = -1
         self.Deviation = 0
-        self.WeightsMemoryHiddenNeurons = np.zeros((self.NumberHiddenNeyrons))
-        self.WeightsMemoryOutputNeurons = np.zeros((self.NumberOutputs))
+        self.MemoryHiddenNeurons = np.zeros((self.NumberHiddenNeyrons))
+        self.MemoryOutputNeurons = np.zeros((self.NumberOutputs))
 
     def makeMatrix(self, width, height, fill=0.0):
         Matrix = []
@@ -191,3 +191,6 @@ class GeneticAlgorithm():
         return Output + "\n"
 
     def GetStatistics(self): return str(self)
+
+
+
