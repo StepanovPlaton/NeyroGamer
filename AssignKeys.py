@@ -1,13 +1,15 @@
 from modules.Control import *
 import time
-control = СontrolClass()
+control = ControlClass()
 
 time.sleep(5)
 
 # for Fusion 3.64
 SetStick = [(0, 1), (0, -1), (-1, 0), (1, 0)]
 SetButton = [1, 2, 3, -1, 4, 5, 6, 11]
-
+control.SetLeftStick(0, 0)
+for i in SetButton:
+    if(i!=-1): control.SetButton(i, 0)
 for i in SetStick:
     print("stick")
     control.SetLeftStick(i[0], i[1])

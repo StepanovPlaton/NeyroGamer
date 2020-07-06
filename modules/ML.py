@@ -24,8 +24,8 @@ class Neyro():
         self.InputWeights = np.zeros((self.NumberInputs, self.NumberHiddenNeyrons))
         self.OutputWeights = np.zeros((self.NumberHiddenNeyrons, self.NumberOutputs))
 
-        for i in range(self.NumberHiddenNeyrons): self.WeightsMemoryHiddenNeurons[i] = self.Random(-1, 1)
-        for i in range(self.NumberOutputs): self.WeightsMemoryOutputNeurons[i] = self.Random(-1, 1)
+        for i in range(self.NumberHiddenNeyrons): self.WeightsMemoryHiddenNeurons[i] = self.Random(0, 1)
+        for i in range(self.NumberOutputs): self.WeightsMemoryOutputNeurons[i] = self.Random(0, 1)
 
         for i in range(self.NumberInputs):
             for j in range(self.NumberHiddenNeyrons): self.InputWeights[i, j] = self.Random(-1, 1)
@@ -147,7 +147,7 @@ class GeneticAlgorithm():
         self.Persons = [Neyro(Neyrons[0], Neyrons[1], Neyrons[2]) for i in range(NumberOfPersons)]
         self.Neyrons = Neyrons
         self.NumberOfPersons = NumberOfPersons
-        self.MutationK = 0.05
+        self.MutationK = 0.01
         self.Era = 1
 
     def GeneСalculation(self, Gene1, Gene2, GeneK=0.5, MutationK=0.1, MutationFrom=-1, MutationTo=1):
@@ -167,10 +167,10 @@ class GeneticAlgorithm():
 
         for i in range(Person1.NumberHiddenNeyrons):
             OutputPerson.WeightsMemoryHiddenNeurons[i] = \
-                self.GeneСalculation(Person1.WeightsMemoryHiddenNeurons[i], Person2.WeightsMemoryHiddenNeurons[i], GeneK, MutationK)
+                self.GeneСalculation(Person1.WeightsMemoryHiddenNeurons[i], Person2.WeightsMemoryHiddenNeurons[i], GeneK, MutationK, MutationFrom=0)
         for i in range(Person1.NumberOutputs):
             OutputPerson.WeightsMemoryOutputNeurons[i] = \
-                self.GeneСalculation(Person1.WeightsMemoryOutputNeurons[i], Person2.WeightsMemoryOutputNeurons[i], GeneK, MutationK)
+                self.GeneСalculation(Person1.WeightsMemoryOutputNeurons[i], Person2.WeightsMemoryOutputNeurons[i], GeneK, MutationK, MutationFrom=0)
         
         return OutputPerson
     

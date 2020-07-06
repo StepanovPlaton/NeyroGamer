@@ -4,8 +4,6 @@ import cv2, time, math
 import threading
 from flask import Flask, render_template, Response, jsonify
 
-# for Fusion 3.64 and resolution 1366*768 - rect whit game (165, 30, 1201, 738)
-
 class ScreenReaderClass():
     def __init__(self, ScreenShotingArea=(0, 0, 1366, 768), RoadK = 0.8):
         self.ScreenShotingArea = ScreenShotingArea
